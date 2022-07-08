@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val model: MapsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -38,18 +40,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
+        updateLocation()
         binding.fab.setOnClickListener {
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener { location: Location? ->
-                    // Got last known location. In some rare situations this can be null.
-                    Toast.makeText(
-                        this,
-                        "${location?.latitude} ${location?.longitude}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+            updateLocation()
         }
+    }
+
+    private fun updateLocation() {
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location: Location? ->
+                // Got last known location. In some rare situations this can be null.
+                Toast.makeText(
+                    this,
+                    "${location?.latitude} ${location?.longitude}",
+                    Toast.LENGTH_LONG
+                ).show()
+                if (location != null) {
+                    model.updateLocation(location)
+                }
+            }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
