@@ -21,6 +21,7 @@ import com.google.android.gms.maps.model.MarkerOptions
 class MapsFragment : Fragment() {
     private val model: MapsViewModel by activityViewModels()
     private lateinit var map: GoogleMap
+    private var previousMarker: Marker? = null
 
     private val callback = OnMapReadyCallback { googleMap ->
         /**
@@ -35,6 +36,10 @@ class MapsFragment : Fragment() {
         map = googleMap
         map.setMinZoomPreference(15.0f)
         map.setMaxZoomPreference(20.0f)
+        val pos = LatLng(37.503617, 127.044844)
+        previousMarker = map.addMarker(
+            MarkerOptions().position(pos).title("Sample location")
+        )
         val circleOptions = CircleOptions().apply {
             center(LatLng(37.503617, 127.044844))
             radius(100.0)
@@ -51,10 +56,6 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val pos = LatLng(37.503617, 127.044844)
-        var previousMarker: Marker? = map.addMarker(
-            MarkerOptions().position(pos).title("Sample location")
-        )
         model.location.observe(viewLifecycleOwner) { location ->
             val now = LatLng(location?.latitude ?: 37.503617, location?.longitude ?: 127.044844)
             previousMarker?.remove()
