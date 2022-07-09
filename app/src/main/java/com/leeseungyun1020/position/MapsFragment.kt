@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -15,11 +14,16 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.leeseungyun1020.position.databinding.FragmentMapsBinding
 
 class MapsFragment : Fragment() {
     private val model: MapsViewModel by activityViewModels()
     private lateinit var map: GoogleMap
+    private var previousMarker: Marker? = null
+    private var _binding: FragmentMapsBinding? = null
+    private val binding get() = _binding!!
 
     private val callback = OnMapReadyCallback { googleMap ->
         /**
@@ -34,12 +38,16 @@ class MapsFragment : Fragment() {
         map = googleMap
         map.setMinZoomPreference(15.0f)
         map.setMaxZoomPreference(20.0f)
+        val pos = LatLng(37.503617, 127.044844)
+        previousMarker = map.addMarker(
+            MarkerOptions().position(pos).title("Sample location")
+        )
         val circleOptions = CircleOptions().apply {
             center(LatLng(37.503617, 127.044844))
             radius(100.0)
-            strokeWidth(10f)
-            strokeColor(Color.GREEN)
-            fillColor(Color.argb(128, 255, 0, 0))
+            strokeWidth(5f)
+            strokeColor(Color.rgb(27, 115, 232))
+            fillColor(Color.argb(26, 27, 115, 232))
             clickable(true)
         }
         map.addCircle(circleOptions)
@@ -50,27 +58,40 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        _binding = FragmentMapsBinding.inflate(inflater, container, false)
+        var isCameraSet = false
         model.location.observe(viewLifecycleOwner) { location ->
             val now = LatLng(location?.latitude ?: 37.503617, location?.longitude ?: 127.044844)
-            map.addMarker(
-                MarkerOptions().position(now).title("${location?.latitude} ${location?.longitude}")
+            previousMarker?.remove()
+            previousMarker = map.addMarker(
+                MarkerOptions()
+                    .position(now)
+                    .title("${location?.latitude} ${location?.longitude}")
             )
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(now, 17.0f))
+            if (!isCameraSet) {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(now, 17.0f))
+                isCameraSet = true
+            }
             val compare = Location("center")
             compare.latitude = 37.503617
             compare.longitude = 127.044844
-            if (location.distanceTo(compare) <= 500) {
-                Toast.makeText(context, "IN", Toast.LENGTH_LONG).show()
+            if (location.distanceTo(compare) <= 100) {
+                binding.noticeText.text = "IN"
             } else {
-                Toast.makeText(context, "OUT", Toast.LENGTH_LONG).show()
+                binding.noticeText.text = "OUT"
             }
         }
-        return inflater.inflate(R.layout.fragment_maps, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
         mapFragment?.getMapAsync(callback)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

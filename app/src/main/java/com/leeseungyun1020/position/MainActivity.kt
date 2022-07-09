@@ -1,8 +1,10 @@
 package com.leeseungyun1020.position
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -14,6 +16,10 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.ui.AppBarConfiguration
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.gms.tasks.OnTokenCanceledListener
 import com.leeseungyun1020.position.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -40,14 +46,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        updateLocation()
-        binding.fab.setOnClickListener {
-            updateLocation()
-        }
+        updateAccurateLocation()
+//        updateLocation()
+//        binding.fab.setOnClickListener {
+//            updateAccurateLocation()
+//        }
     }
 
     private fun updateLocation() {
-        fusedLocationClient.lastLocation
+        fusedLocationClient.getCurrentLocation(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            object : CancellationToken() {
+                override fun onCanceledRequested(p0: OnTokenCanceledListener) =
+                    CancellationTokenSource().token
+
+                override fun isCancellationRequested() = false
+            })
             .addOnSuccessListener { location: Location? ->
                 // Got last known location. In some rare situations this can be null.
                 Toast.makeText(
@@ -59,6 +73,24 @@ class MainActivity : AppCompatActivity() {
                     model.updateLocation(location)
                 }
             }
+    }
+
+    private fun updateAccurateLocation() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (gpsEnabled) {
+            // Register for location updates
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                1000,
+                0.0f
+            ) { location ->
+                model.updateLocation(location)
+            }
+
+            // Or get last known location
+            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
