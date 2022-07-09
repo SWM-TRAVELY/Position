@@ -3,11 +3,9 @@ package com.leeseungyun1020.position
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -18,11 +16,14 @@ import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.leeseungyun1020.position.databinding.FragmentMapsBinding
 
 class MapsFragment : Fragment() {
     private val model: MapsViewModel by activityViewModels()
     private lateinit var map: GoogleMap
     private var previousMarker: Marker? = null
+    private var _binding: FragmentMapsBinding? = null
+    private val binding get() = _binding!!
 
     private val callback = OnMapReadyCallback { googleMap ->
         /**
@@ -57,6 +58,7 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        _binding = FragmentMapsBinding.inflate(inflater, container, false)
         var isCameraSet = false
         model.location.observe(viewLifecycleOwner) { location ->
             val now = LatLng(location?.latitude ?: 37.503617, location?.longitude ?: 127.044844)
@@ -74,19 +76,22 @@ class MapsFragment : Fragment() {
             compare.latitude = 37.503617
             compare.longitude = 127.044844
             if (location.distanceTo(compare) <= 100) {
-                Log.d("LSY", "IN")
-                Toast.makeText(context, "IN", Toast.LENGTH_LONG).show()
+                binding.noticeText.text = "IN"
             } else {
-                Log.d("LSY", "OUT")
-                Toast.makeText(context, "OUT", Toast.LENGTH_LONG).show()
+                binding.noticeText.text = "OUT"
             }
         }
-        return inflater.inflate(R.layout.fragment_maps, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
         mapFragment?.getMapAsync(callback)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
