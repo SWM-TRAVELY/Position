@@ -43,9 +43,9 @@ class MapsFragment : Fragment() {
         val circleOptions = CircleOptions().apply {
             center(LatLng(37.503617, 127.044844))
             radius(100.0)
-            strokeWidth(10f)
-            strokeColor(Color.GREEN)
-            fillColor(Color.argb(128, 255, 0, 0))
+            strokeWidth(5f)
+            strokeColor(Color.rgb(27, 115, 232))
+            fillColor(Color.argb(26, 27, 115, 232))
             clickable(true)
         }
         map.addCircle(circleOptions)
