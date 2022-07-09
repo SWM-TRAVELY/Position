@@ -15,6 +15,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 
 class MapsFragment : Fragment() {
@@ -50,16 +51,23 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        val pos = LatLng(37.503617, 127.044844)
+        var previousMarker: Marker? = map.addMarker(
+            MarkerOptions().position(pos).title("Sample location")
+        )
         model.location.observe(viewLifecycleOwner) { location ->
             val now = LatLng(location?.latitude ?: 37.503617, location?.longitude ?: 127.044844)
-            map.addMarker(
-                MarkerOptions().position(now).title("${location?.latitude} ${location?.longitude}")
+            previousMarker?.remove()
+            previousMarker = map.addMarker(
+                MarkerOptions()
+                    .position(now)
+                    .title("${location?.latitude} ${location?.longitude}")
             )
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(now, 17.0f))
             val compare = Location("center")
             compare.latitude = 37.503617
             compare.longitude = 127.044844
-            if (location.distanceTo(compare) <= 500) {
+            if (location.distanceTo(compare) <= 100) {
                 Toast.makeText(context, "IN", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(context, "OUT", Toast.LENGTH_LONG).show()
