@@ -3,6 +3,7 @@ package com.leeseungyun1020.position
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -56,6 +57,7 @@ class MapsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        var isCameraSet = false
         model.location.observe(viewLifecycleOwner) { location ->
             val now = LatLng(location?.latitude ?: 37.503617, location?.longitude ?: 127.044844)
             previousMarker?.remove()
@@ -64,13 +66,18 @@ class MapsFragment : Fragment() {
                     .position(now)
                     .title("${location?.latitude} ${location?.longitude}")
             )
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(now, 17.0f))
+            if (!isCameraSet) {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(now, 17.0f))
+                isCameraSet = true
+            }
             val compare = Location("center")
             compare.latitude = 37.503617
             compare.longitude = 127.044844
             if (location.distanceTo(compare) <= 100) {
+                Log.d("LSY", "IN")
                 Toast.makeText(context, "IN", Toast.LENGTH_LONG).show()
             } else {
+                Log.d("LSY", "OUT")
                 Toast.makeText(context, "OUT", Toast.LENGTH_LONG).show()
             }
         }
