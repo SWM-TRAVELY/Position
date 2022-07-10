@@ -1,25 +1,20 @@
 package com.leeseungyun1020.position
 
 import android.Manifest
-import android.content.Context
+import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
 import android.os.Bundle
+import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.navigation.ui.AppBarConfiguration
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationToken
-import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.gms.tasks.OnTokenCanceledListener
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.*
+import com.google.android.gms.tasks.Task
 import com.leeseungyun1020.position.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -27,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
     private val model: MapsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,53 +39,55 @@ class MainActivity : AppCompatActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             startLocationPermissionActivity(this)
+        } else {
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            updateLocation()
         }
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        updateAccurateLocation()
-//        updateLocation()
-//        binding.fab.setOnClickListener {
-//            updateAccurateLocation()
-//        }
+        binding.fab.setOnClickListener {
+
+        }
     }
 
     private fun updateLocation() {
-        fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            object : CancellationToken() {
-                override fun onCanceledRequested(p0: OnTokenCanceledListener) =
-                    CancellationTokenSource().token
-
-                override fun isCancellationRequested() = false
-            })
-            .addOnSuccessListener { location: Location? ->
-                // Got last known location. In some rare situations this can be null.
-                Toast.makeText(
-                    this,
-                    "${location?.latitude} ${location?.longitude}",
-                    Toast.LENGTH_LONG
-                ).show()
-                if (location != null) {
-                    model.updateLocation(location)
+        val locationRequest = LocationRequest.create().apply {
+            interval = 10000
+            fastestInterval = 5000
+            priority = Priority.PRIORITY_HIGH_ACCURACY
+        }
+        val builder = LocationSettingsRequest.Builder()
+            .addLocationRequest(locationRequest)
+        val client: SettingsClient = LocationServices.getSettingsClient(this)
+        val task: Task<LocationSettingsResponse> = client.checkLocationSettings(builder.build())
+        task.addOnSuccessListener {
+            locationCallback = object : LocationCallback() {
+                override fun onLocationResult(locationResult: LocationResult) {
+                    locationResult
+                    for (location in locationResult.locations) {
+                        model.updateLocation(location)
+                    }
                 }
             }
-    }
-
-    private fun updateAccurateLocation() {
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        if (gpsEnabled) {
-            // Register for location updates
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                1000,
-                0.0f
-            ) { location ->
-                model.updateLocation(location)
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
+        }.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException) {
+                // Location settings are not satisfied, but this can be fixed
+                // by showing the user a dialog.
+                try {
+                    // Show the dialog by calling startResolutionForResult(),
+                    // and check the result in onActivityResult().
+                    exception.startResolutionForResult(
+                        this@MainActivity,
+                        1
+                    )
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    // Ignore the error.
+                }
             }
-
-            // Or get last known location
-            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
         }
     }
 
